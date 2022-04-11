@@ -27,17 +27,19 @@
  *    exception statement from all source files in the program, then also delete
  *    it in the license file.
  */
-package com.whaleal.mars.bean;
 
 /**
- * @author cx
- * @Date 2020/12/23
+ * 索引相关的注解全都在这里
+ * 主要结构如下所示
+ * Indexes
+ *     -Index
+ *          -Field = {field1 ,ASC}
+ *          -Field = {field1 ,ASC}
+ *     -Index
+ *          -Field = {field1 ,ASC}
+ *          -Field = {field1 ,ASC}
+ *          -IndexOptions
+ *
+ *
  */
-
-public enum Week {
-
-    MONDAY,
-    ;
-
-
-}
+package com.whaleal.mars.core.index.annotation;

@@ -36,6 +36,9 @@ import java.lang.annotation.*;
 
 /**
  * Define a field to be used in an index;
+ *
+ * @see IndexDirection
+ *
  */
 @Documented
 @Inherited
@@ -43,7 +46,7 @@ import java.lang.annotation.*;
 @Target({ElementType.ANNOTATION_TYPE})
 public @interface Field {
     /**
-     * @return "Direction" of the indexing.  Defaults to {@link IndexDirection#ASC}.
+     * @return "IndexDirection" of the indexing.  Defaults to {@link IndexDirection#ASC}.
      */
     IndexDirection type() default IndexDirection.ASC;
 
@@ -53,6 +56,8 @@ public @interface Field {
     String value();
 
     /**
+     * default in mongodb is 1
+     * when -1  notwork
      * @return The weight to use when creating a text index.  This value only makes sense when direction is {@link IndexDirection#TEXT}
      */
     int weight() default -1;

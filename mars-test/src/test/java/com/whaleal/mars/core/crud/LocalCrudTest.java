@@ -103,7 +103,7 @@ public class LocalCrudTest {
     public void insertMany() {
 
         mars.dropCollection(Person.class);
-        InsertManyResult insert = mars.insert(people);
+        InsertManyResult insert = mars.insert(people,Person.class);
 
         int size = insert.getInsertedIds().size();
 
@@ -123,7 +123,7 @@ public class LocalCrudTest {
         options.upsert(true);
         options.multi(true);
 
-        UpdateResult result = mars.update(query, person, options,null);
+        UpdateResult result = mars.updateEntity(query, person, options,null);
         //mars.update(query, person);
 
         System.out.println(result);
@@ -248,7 +248,7 @@ public class LocalCrudTest {
         options.upsert(true);
         options.multi(true);
 
-        UpdateResult result = mars.update(query, person, options,null);
+        UpdateResult result = mars.updateEntity(query, person, options,null);
         //mars.update(query, person);
 
         System.out.println(result);

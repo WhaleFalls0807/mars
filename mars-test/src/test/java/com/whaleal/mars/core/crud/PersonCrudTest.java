@@ -122,7 +122,7 @@ public class PersonCrudTest {
 
         Assert.assertEquals(personList.size() ,number);
 
-        InsertManyResult insertManyResult = mars.insert(personList);
+        InsertManyResult insertManyResult = mars.insert(personList,Person.class);
 
         Assert.assertTrue(insertManyResult.wasAcknowledged());
 
@@ -309,7 +309,7 @@ public class PersonCrudTest {
         options.upsert(true);
         options.multi(true);
 
-        UpdateResult result = mars.update(query, person, options);
+        UpdateResult result = mars.updateEntity(query, person, options);
 
 
        Assert.assertTrue(result.wasAcknowledged()) ;
@@ -382,7 +382,7 @@ public class PersonCrudTest {
         options.upsert(true);
         options.multi(true);
 
-        UpdateResult result = mars.update(query, person, options);
+        UpdateResult result = mars.updateEntity(query, person, options);
 
 
         Assert.assertNotNull(result.getUpsertedId().asObjectId().getValue());

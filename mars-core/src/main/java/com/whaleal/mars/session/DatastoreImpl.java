@@ -39,7 +39,6 @@ import com.mongodb.client.gridfs.model.GridFSUploadOptions;
 import com.mongodb.client.model.ValidationAction;
 import com.mongodb.client.model.ValidationLevel;
 
-import com.whaleal.icefrog.core.collection.CollUtil;
 import com.whaleal.icefrog.core.util.ObjectUtil;
 import com.whaleal.icefrog.core.util.OptionalUtil;
 import com.whaleal.icefrog.core.util.StrUtil;
@@ -67,12 +66,13 @@ import com.whaleal.mars.session.result.InsertOneResult;
 import com.whaleal.mars.session.result.UpdateResult;
 import com.whaleal.mars.core.query.BsonUtil;
 
+import com.whaleal.mars.session.transactions.MarsTransaction;
 import org.bson.Document;
 import org.bson.codecs.EncoderContext;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
-import javax.print.Doc;
+
 import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -90,7 +90,7 @@ import static com.whaleal.icefrog.core.lang.Precondition.notNull;
  * @Date 2020-12-03
  *
  */
-public class DatastoreImpl extends AggregationImpl implements Datastore{
+public abstract class DatastoreImpl extends AggregationImpl implements Datastore{
 
     private static final Log log = LogFactory.get(DatastoreImpl.class);
 
@@ -102,10 +102,16 @@ public class DatastoreImpl extends AggregationImpl implements Datastore{
     private final Map< Class<?> , String > collectionNameCache = new HashMap< Class<?>, String >();
 
 
-    public DatastoreImpl( MongoClient mongoClient, String databaseName ) {
+    protected DatastoreImpl( MongoClient mongoClient, String databaseName ) {
         super(mongoClient.getDatabase(databaseName));
         this.mongoClient = mongoClient;
         defaultGridFSBucket = GridFSBuckets.create(super.database);
+    }
+
+    protected DatastoreImpl(MongoClient mongoClient ,MongoMappingContext mapper){
+        super(mapper.getDatabase(),mapper);
+        this.mongoClient = mongoClient ;
+        this.defaultGridFSBucket = GridFSBuckets.create(super.database);
     }
 
 
@@ -203,7 +209,15 @@ public class DatastoreImpl extends AggregationImpl implements Datastore{
     }
 
     @Override
-    public < T > InsertManyResult insert( Collection< ? extends T > entities, InsertManyOptions options, String collectionName ) {
+    public < T > InsertManyResult insert( Collection< ? extends T > entities, Class< ? > entityClass, InsertManyOptions options ) {
+        String collectionName = this.mapper.determineCollectionName(entityClass, null);
+        return this.insert(entities,collectionName,options);
+    }
+
+
+
+    @Override
+    public < T > InsertManyResult insert( Collection< ? extends T > entities, String collectionName ,InsertManyOptions options) {
 
         if (entities == null || entities.isEmpty()) {
             throw new IllegalArgumentException("entities in operation can't be null or empty ");
@@ -233,7 +247,7 @@ public class DatastoreImpl extends AggregationImpl implements Datastore{
     }
 
     @Override
-    public < T > UpdateResult update( Query query, T entity, UpdateOptions options, String collectionName ) {
+    public < T > UpdateResult updateEntity( Query query, T entity, UpdateOptions options, String collectionName ) {
 
         Document entityDoc = this.toDocument(entity);
         if (entityDoc == null) {
@@ -473,7 +487,7 @@ public class DatastoreImpl extends AggregationImpl implements Datastore{
     @Override
     public < T > void ensureIndexes( Class< T > entityClass, String collectionName ) {
 
-        final IndexHelper indexHelper = new IndexHelper();
+        final IndexHelper indexHelper = new IndexHelper(this.mapper);
         String collName = this.mapper.determineCollectionName(entityClass, collectionName);
         indexHelper.createIndex(this.database.getCollection(collName), this.mapper.getEntityModel(entityClass));
 
@@ -616,7 +630,7 @@ public class DatastoreImpl extends AggregationImpl implements Datastore{
         if (upload.getFileId() == null) {
             return (T) getGridFsBucket(bucketName).uploadFromStream(upload.getFilename(), upload.getContent(), uploadOptions);
         }
-
+        
         getGridFsBucket(bucketName).uploadFromStream(BsonUtil.simpleToBsonValue(upload.getFileId()), upload.getFilename(),
                 upload.getContent(), uploadOptions);
 
@@ -1378,7 +1392,6 @@ public class DatastoreImpl extends AggregationImpl implements Datastore{
 
         }
 
-
         return null;
     }
 
@@ -1558,4 +1571,30 @@ public class DatastoreImpl extends AggregationImpl implements Datastore{
 
         return null;
     }
+
+
+
+    @Override
+    public <T> T withTransaction(MarsTransaction<T> body) {
+        return doTransaction(startSession(), body);
+    }
+
+    @Override
+    public <T> T withTransaction(MarsTransaction<T> transaction ,ClientSessionOptions options ) {
+        return doTransaction(startSession(options), transaction);
+    }
+    private <T> T doTransaction(MarsSession marssession, MarsTransaction<T> body) {
+        try {
+            ClientSession session = marssession.startSession();
+            if (session == null) {
+                throw new IllegalStateException("No session could be found for the transaction.");
+            }
+            return session.withTransaction(() -> body.execute(marssession));
+        }catch (Exception e){
+            log.error(e);
+            throw e;
+        }
+    }
+
+
 }
