@@ -31,6 +31,9 @@ package com.whaleal.mars.core.query;
 
 
 import com.whaleal.icefrog.core.lang.Precondition;
+import com.whaleal.icefrog.core.util.ObjectUtil;
+import com.whaleal.mars.codecs.writer.DocumentWriter;
+import com.whaleal.mars.core.aggregation.codecs.ExpressionHelper;
 import com.whaleal.mars.core.internal.InvalidMongoDbApiUsageException;
 
 import org.bson.Document;
@@ -53,7 +56,7 @@ public class Query {
     // projection
     private Projection projectionSpec = null;
     // sorting
-    private Sort sort = Sort.on();
+    private List<Sort> sorts = new ArrayList<>();
     private long skip;
     private int limit;
 
@@ -205,7 +208,6 @@ public class Query {
      *
      * @param hint must not be {@literal null} or empty.
      * @return this.
-     * @see Document#parse(String)
      */
     public Query withHint(String hint) {
 
@@ -234,22 +236,18 @@ public class Query {
      * @param sort must not be {@literal null}.
      * @return this.
      */
-    public Query with(Sort sort) {
+    public Query with(Sort... sort) {
 
         Precondition.notNull(sort, "Sort must not be null!");
 
-        if (sort.getSorts().isEmpty()) {
+        if (sort.length == 0) {
             return this;
         }
 
-
-
-        this.sort = this.sort.and(sort);
+        sorts.addAll(Arrays.asList(sort));
 
         return this;
     }
-
-
 
     /**
      * @return the query {@link Document}.
@@ -277,17 +275,26 @@ public class Query {
      */
     public Document getSortObject() {
 
-       return this.sort.getSortObject();
+        DocumentWriter writer = new DocumentWriter() ;
+        if(isSorted()){
+            ExpressionHelper.document(writer, () -> {
+                for (Sort sort : sorts) {
+                    writer.writeName(sort.getField());
+                    writer.writeInt32(sort.getOrder());
+                }
+            });
+            return writer.getDocument();
+        }
+        return null;
     }
 
     /**
      * Returns {@literal true} if the {@link Query} has a sort parameter.
      *
      * @return {@literal true} if sorted.
-     * @see Sort#getSorts()#isEmpty() ()
      */
     public boolean isSorted() {
-        return !sort.getSorts().isEmpty();
+        return ObjectUtil.isNotEmpty(sorts);
     }
 
     /**
@@ -319,7 +326,6 @@ public class Query {
     /**
      * @param maxTimeMsec
      * @return this.
-     * @see Meta#setMaxTimeMsec(long)
      */
     public Query maxTimeMsec(long maxTimeMsec) {
 
@@ -331,7 +337,6 @@ public class Query {
      * @param timeout
      * @param timeUnit must not be {@literal null}.
      * @return this.
-     * @see Meta#setMaxTime(long, TimeUnit)
      * @deprecated . Use {@link #maxTime(Duration)} instead.
      */
     @Deprecated
@@ -344,7 +349,6 @@ public class Query {
     /**
      * @param timeout must not be {@literal null}.
      * @return this.
-     * @see Meta#setMaxTime(Duration)
      */
     public Query maxTime(Duration timeout) {
 
@@ -357,7 +361,6 @@ public class Query {
      *
      * @param comment must not be {@literal null}.
      * @return this.
-     * @see Meta#setComment(String)
      */
     public Query comment(String comment) {
 
@@ -372,7 +375,6 @@ public class Query {
      *
      * @param batchSize The number of documents to return per batch.
      * @return this.
-     * @see Meta#setCursorBatchSize(int)
      */
     public Query cursorBatchSize(int batchSize) {
 
@@ -382,7 +384,6 @@ public class Query {
 
     /**
      * @return this.
-     * @see Meta.CursorOption#NO_TIMEOUT
      */
     public Query noCursorTimeout() {
 
@@ -392,7 +393,6 @@ public class Query {
 
     /**
      * @return this.
-     * @see Meta.CursorOption#EXHAUST
      */
     public Query exhaust() {
 
@@ -405,8 +405,6 @@ public class Query {
      * Allows querying of a replica.
      *
      * @return this.
-     * @see Meta.CursorOption#SECONDARY_READS
-     * .2
      */
     public Query allowSecondaryReads() {
 
@@ -416,7 +414,6 @@ public class Query {
 
     /**
      * @return this.
-     * @see Meta.CursorOption#PARTIAL
      */
     public Query partialResults() {
 
@@ -446,7 +443,7 @@ public class Query {
      * @param collation can be {@literal null}.
      * @return this.
      */
-    public Query collation( Collation collation ) {
+    public Query collation(Collation collation ) {
 
         this.collation = Optional.ofNullable(collation);
         return this;
@@ -503,7 +500,7 @@ public class Query {
 
         boolean criteriaEqual = this.criteria.equals(that.criteria);
         boolean fieldsEqual = nullSafeEquals(this.projectionSpec, that.projectionSpec);
-        boolean sortEqual = this.sort.equals(that.sort);
+        boolean sortEqual = this.sorts.equals(that.sorts);
         boolean hintEqual = nullSafeEquals(this.hint, that.hint);
         boolean skipEqual = this.skip == that.skip;
         boolean limitEqual = this.limit == that.limit;
@@ -525,7 +522,7 @@ public class Query {
 
         result += 31 * criteria.hashCode();
         result += 31 * nullSafeHashCode(projectionSpec);
-        result += 31 * nullSafeHashCode(sort);
+        result += 31 * nullSafeHashCode(sorts);
         result += 31 * nullSafeHashCode(hint);
         result += 31 * skip;
         result += 31 * limit;

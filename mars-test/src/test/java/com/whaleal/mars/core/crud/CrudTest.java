@@ -1,5 +1,6 @@
 package com.whaleal.mars.core.crud;
 
+import com.whaleal.mars.Constant;
 import com.whaleal.mars.base.StudentGenerator;
 import com.whaleal.mars.bean.Person;
 import com.whaleal.mars.bean.Student;
@@ -9,12 +10,14 @@ import com.whaleal.mars.core.query.Query;
 import com.whaleal.mars.core.query.Update;
 import com.whaleal.mars.session.QueryCursor;
 import com.whaleal.mars.session.option.DeleteOptions;
+import com.whaleal.mars.session.option.InsertOneOptions;
 import com.whaleal.mars.session.option.ReplaceOptions;
 import com.whaleal.mars.session.option.UpdateOptions;
 import com.whaleal.mars.session.result.DeleteResult;
 import com.whaleal.mars.session.result.UpdateResult;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.junit.After;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.testng.Assert;
@@ -47,10 +50,17 @@ public class CrudTest {
     @BeforeMethod
     public void isNull() {
 
-        Assert.assertNotNull(mars);
+        mars = new Mars(Constant.connectionStr);
 
-        System.out.println(mars);
+        Assert.assertNotNull(this.mars);
+
+        System.out.println(this.mars);
         student = StudentGenerator.getInstance(10000);
+    }
+
+    @After
+    public void dropCollection(){
+        mars.dropCollection(Student.class);
     }
 
 
@@ -83,8 +93,16 @@ public class CrudTest {
 
         mars.dropCollection(Student.class);
         mars.insert(student);
-        mars.dropCollection(Student.class);
+//        mars.dropCollection(Student.class);
 
+    }
+
+    @Test
+    public void insertOption() {
+        mars.dropCollection(Student.class);
+        System.out.println("getTime: " + System.currentTimeMillis());
+        mars.insert(student,new InsertOneOptions());
+        System.out.println("endTime: " + System.currentTimeMillis());
     }
 
     @Test
@@ -97,6 +115,8 @@ public class CrudTest {
 
     @Test
     public void update() {
+        mars.dropCollection(Student.class);
+
         Student student = StudentGenerator.getInstance(stuNo);
         student.setStuName("cName");
 

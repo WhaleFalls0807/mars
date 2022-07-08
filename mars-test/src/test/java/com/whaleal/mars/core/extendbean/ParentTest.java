@@ -105,7 +105,7 @@ public class ParentTest {
         p.setId("10");
 
         mars.insert(p);
-        long count = mars.count(Parent.class);
+        long count = mars.estimatedCount(Parent.class);
         Assert.assertEquals(1, count);
 
     }
@@ -122,7 +122,7 @@ public class ParentTest {
         mars.insert(p);
         Criteria id = Criteria.where("_id").is("10");
 
-        long l = mars.countById(new Query(id), Parent.class);
+        long l = mars.count(new Query(id), Parent.class);
 
         Assert.assertEquals(1, l);
     }
@@ -191,7 +191,8 @@ public class ParentTest {
         mars.insert(p2);
         mars.insert(p);
         Criteria age = Criteria.where("age").lte(100);
-        QueryCursor< Parent > all = mars.findAll(new Query(age).with(Sort.on().descending("age")), Parent.class);
+//        with(Sort.on().descending("age"))
+        QueryCursor< Parent > all = mars.findAll(new Query(age).with(Sort.descending("age")), Parent.class);
         List< Parent > parents = all.toList();
         Parent first = parents.get(0);
 

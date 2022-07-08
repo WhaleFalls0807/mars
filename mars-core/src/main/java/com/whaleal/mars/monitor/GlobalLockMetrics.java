@@ -29,12 +29,16 @@
  */
 package com.whaleal.mars.monitor;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.client.MongoClient;
 import org.bson.Document;
 
+import java.util.Date;
+
 /**
  * JMX Metrics for Global Locks
+ * 解析db.serverStatus的globalLock参数,对应OPS中的queue
  */
 public class GlobalLockMetrics extends AbstractMonitor {
 
@@ -43,39 +47,49 @@ public class GlobalLockMetrics extends AbstractMonitor {
         super(mongoClient);
     }
 
-    public double getTotalTime() {
-        return getGlobalLockData("totalTime", Double.class);
+    public Long getTotalTime() {
+        return getGlobalLockData("totalTime", Long.class);
     }
 
-    public double getLockTime() {
-        return getGlobalLockData("lockTime", Double.class);
-    }
-
-    public double getLockTimeRatio() {
-        return getGlobalLockData("ratio", Double.class);
-    }
-
-    public int getCurrentQueueTotal() {
+    public Integer getCurrentQueueTotal() {
         return getCurrentQueue("total");
     }
 
-    public int getCurrentQueueReaders() {
+    public Integer getCurrentQueueReaders() {
         return getCurrentQueue("readers");
     }
 
-    public int getCurrentQueueWriters() {
+    public Integer getCurrentQueueWriters() {
         return getCurrentQueue("writers");
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> T getGlobalLockData(String key, Class<T> targetClass) {
-        DBObject globalLock = (DBObject) getServerStatus().get("globalLock");
-        return (T) globalLock.get(key);
+    public Integer getActiveClientsTotal() {
+        return getaActiveClients("total");
     }
 
-    private int getCurrentQueue(String key) {
+    public Integer getActiveClientsReaders() {
+        return getaActiveClients("readers");
+    }
+
+    public Integer getActiveClientsWriters() {
+        return getaActiveClients("writers");
+    }
+    @SuppressWarnings("unchecked")
+    private <T> T getGlobalLockData(String key, Class<T> targetClass) {
+
+        BasicDBObject globalLock1 = BasicDBObject.parse(getServerStatus().get("globalLock",Document.class).toJson());
+        return (T) globalLock1.get(key);
+    }
+
+    private Integer getCurrentQueue(String key) {
         Document globalLock = (Document) getServerStatus().get("globalLock");
         Document currentQueue = (Document) globalLock.get("currentQueue");
+        return (Integer) currentQueue.get(key);
+    }
+
+    private Integer getaActiveClients(String key) {
+        Document globalLock = (Document) getServerStatus().get("globalLock");
+        Document currentQueue = (Document) globalLock.get("activeClients");
         return (Integer) currentQueue.get(key);
     }
 }

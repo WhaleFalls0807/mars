@@ -105,7 +105,7 @@ public class StudentCrudTest {
         //  求各班语文的平均成绩并排序
 
         AggregationPipeline pipeline = AggregationPipeline.create(Student.class);
-        pipeline.group(Group.of(Group.id("classNo")).field("cscore", sum(field("cscore"))).field("mscore", avg(field("cscore"))));
+        pipeline.group(Group.group(Group.id("classNo")).field("cscore", sum(field("cscore"))).field("mscore", avg(field("cscore"))));
         pipeline.sort(Sort.on().ascending("_id"));
 
         QueryCursor< Student > aggregate = mars.aggregate(pipeline);
@@ -125,7 +125,7 @@ public class StudentCrudTest {
         }
         mars.dropCollection(Student.class);
         InsertManyResult insert = mars.insert(list, Student.class);
-        long count = mars.count(Student.class);
+        long count = mars.estimatedCount(Student.class);
         Assert.assertEquals(i, count);
         mars.dropCollection(Student.class);
 

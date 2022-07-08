@@ -56,7 +56,16 @@ import java.util.stream.Collectors;
  * @Date 2020/12/18
  * 配置类，MongoProperties都是在这里获取的
  * 原生的配置了许多Bean，涉及到mars的有
- * 当
+ * @see MongoProperties
+ * @see MongoClient
+ * @see MongoMappingContext
+ *
+ *
+ * @Configuration(proxyBeanMethods = false) 表明此类是配置类,被Spring管理，proxyBeanMethods设为false，此配置类不会被拦截进⾏CGLIB代理,可以提升性能
+ * @ConditionalOnClass({MongoClient.class, Mars.class}) 只有当MongoClient类和Mars类都位于类路径上,才会实例化@Bean生成的对象
+ * @EnableConfigurationProperties(MongoProperties.class) 让MongoProperties.class类上使用的 @ConfigurationProperties注解的生效,并且将该类注入到 IOC 容器中,交由 IOC 容器进行管理
+ * @AutoConfigureBefore(MongoAutoConfiguration.class) 优先加载当前的配置类，在加载MongoAutoConfiguration.class之前加载
+ * @ConditionalOnMissingBean(Mars.class) 仅当当前上下文中没有Mars对象时,才会实例化@Bean生成的对象
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass({MongoClient.class, Mars.class})
@@ -65,25 +74,25 @@ import java.util.stream.Collectors;
 @ConditionalOnMissingBean(Mars.class)
 public class MarsAutoConfiguration {
 
+    //生成mars对象,交给spring管理
     @Bean
     @ConditionalOnMissingBean({Mars.class})
-    public Mars mars( MongoClient client, MongoProperties properties, ApplicationContext applicationContext ) {
+    public Mars mars( MongoClient client, MongoProperties properties, ApplicationContext applicationContext ) throws ClassNotFoundException {
 
-        if (Boolean.TRUE.equals(properties.isAutoIndexCreation())) {
-            String databaseName = properties.getMongoClientDatabase();
-            PropertyMapper mapper = PropertyMapper.get().alwaysApplyingWhenNonNull();
-            MongoMappingContext context = new MongoMappingContext(client.getDatabase(databaseName));
-            mapper.from(properties.isAutoIndexCreation()).to(context::setAutoIndexCreation);
-            try {
-                context.setInitialEntitySet(new EntityScanner(applicationContext).scan(Entity.class));
-            } catch (Exception e) {
-                context.setAutoIndexCreation(false);
-            }
-            return new Mars(client, context);
-        } else {
-            return new Mars(client, properties.getMongoClientDatabase());
+        //PropertyMapper作用：读取配置文件中的属性注入到Spring上下文中
+        PropertyMapper mapper = PropertyMapper.get().alwaysApplyingWhenNonNull();
+        String databaseName = properties.getMongoClientDatabase();
+        MongoMappingContext context = new MongoMappingContext(client.getDatabase(databaseName));
+        //读取配置文件中是否自动创建索引的选项，注入到MongoMappingContext中
+        mapper.from(properties.isAutoIndexCreation()).to(context::setAutoIndexCreation);
+        //借助spring扫描所有加了@Entity注解的类
+        context.setInitialEntitySet(new EntityScanner(applicationContext).scan(Entity.class));
+        //从配置文件中获取命名策略，注入到MongoMappingContext中
+        Class<?> strategyClass = properties.getFieldNamingStrategy();
+        if (strategyClass != null) {
+            context.setNamingStrategy(strategyClass);
         }
-
+        return new Mars(client, context);
     }
 
 

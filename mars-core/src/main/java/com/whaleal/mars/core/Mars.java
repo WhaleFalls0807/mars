@@ -44,11 +44,9 @@ import com.whaleal.mars.session.DatastoreImpl;
  * 或者通过 uri  参数 来创建该对象
  *
  * 操作相关实现全部详见  DataStoreImpl
- * @see com.whaleal.mars.session.DatastoreImpl
+ * @see DatastoreImpl
  */
 public class Mars extends DatastoreImpl {
-
-
     /**
      * 这个是连接级别的读写关注
      * 即为库级别的读写关注
@@ -63,7 +61,6 @@ public class Mars extends DatastoreImpl {
 
     public Mars( MongoClient mongoClient, MongoMappingContext mapper ) {
         super(mongoClient, mapper);
-
     }
 
     public Mars( String connectionString ) {

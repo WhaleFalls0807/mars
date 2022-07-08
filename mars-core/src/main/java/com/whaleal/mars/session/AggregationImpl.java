@@ -29,9 +29,11 @@
  */
 package com.whaleal.mars.session;
 
+import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.whaleal.icefrog.core.util.ObjectUtil;
 import com.whaleal.mars.codecs.MongoMappingContext;
 import com.whaleal.mars.codecs.writer.DocumentWriter;
 import com.whaleal.mars.core.aggregation.AggregationPipeline;
@@ -41,9 +43,11 @@ import org.bson.Document;
 import org.bson.codecs.Codec;
 import org.bson.codecs.EncoderContext;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//todo
 public abstract class AggregationImpl {
 
     protected  MongoMappingContext mapper;
@@ -130,26 +134,22 @@ public abstract class AggregationImpl {
             collection = options.prepare(collection);
         }
 
-
-        MongoCursor<T> cursor = collection.aggregate(getDocuments(pipeline.getInnerStage()), resultType).iterator();
+        MongoCursor<T> cursor = options.apply(getDocuments(pipeline.getInnerStage()), collection, resultType).iterator();
 
         return new QueryCursor<T>(cursor);
 
 
     }
 
-
     @SuppressWarnings({"unchecked", "rawtypes"})
     private List<Document> getDocuments(List<Stage> stages) {
         return stages.stream()
                 .map(s -> {
                     Codec codec = mapper.getCodecRegistry().get(s.getClass());
-                    DocumentWriter writer = new DocumentWriter();
+                    DocumentWriter writer = new DocumentWriter(mapper);
                     codec.encode(writer, s, EncoderContext.builder().build());
                     return writer.getDocument();
                 })
                 .collect(Collectors.toList());
     }
-
-
 }

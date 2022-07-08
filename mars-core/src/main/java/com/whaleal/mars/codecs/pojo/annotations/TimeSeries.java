@@ -8,6 +8,8 @@ import com.mongodb.client.model.TimeSeriesGranularity;
 
 import java.lang.annotation.*;
 
+import static com.mongodb.client.model.TimeSeriesGranularity.SECONDS;
+
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE })
@@ -38,22 +40,23 @@ public @interface TimeSeries {
      *
      * @return {@link TimeSeriesGranularity server default} by default.
      */
-    TimeSeriesGranularity granularity() ;
+    TimeSeriesGranularity granularity() default SECONDS;
 
     /**
      * Optional. Enable the automatic deletion of documents in a time series collection by specifying the number of seconds
      * after which documents expire. MongoDB deletes expired documents automatically. See Set up Automatic Removal for
      * Time Series Collections (TTL) for more information.
+     * 此参数生效需要指定enableExpire有效
      * @return expireAfterSeconds
      */
-    long expireAfterSeconds() ;
+    long expireAfterSeconds() default 0;
 
     /**
      * 是否开启 过期
      * 限制 expireAfterSeconds 的启用
      * @return false  default
      */
-    boolean enableExpire()default  false ;
+    boolean enableExpire() default false;
 
 
 }

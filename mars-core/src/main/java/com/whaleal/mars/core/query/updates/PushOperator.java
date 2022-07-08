@@ -31,6 +31,7 @@ package com.whaleal.mars.core.query.updates;
 
 
 
+
 import com.whaleal.mars.core.query.Sort;
 import org.bson.Document;
 
@@ -109,8 +110,23 @@ public class PushOperator extends UpdateOperator {
         if (sortDocument == null) {
             sortDocument = new Document();
         }
-        sortDocument.put(value.getStageName(), value.getSortObject());
+        sortDocument.put(value.getField(), value.getOrder());
         return this;
+//        if (sort != null) {
+//            throw new IllegalStateException("updateSortOptions Sort document "+sort);
+//        }
+//        if (sortDocument == null) {
+//            sortDocument = new Document();
+//        }
+//        DocumentWriter writer = new DocumentWriter() ;
+//        ExpressionHelper.document(writer, () -> {
+//            for (Sort.SortType sorttype : value.getSorts()) {
+//                writer.writeName(sorttype.getField());
+//                sorttype.getDirection().encode(writer);
+//            }
+//        });
+//        sortDocument.put("$sort", writer.getDocument());
+//        return this;
     }
 
     @Override

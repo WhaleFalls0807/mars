@@ -69,6 +69,7 @@ import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
  * <p>
  * <p>
  * 需要将原来的   的功能转移到这里来
+ * 自动注入 相关属性会注入到这个相关属性中
  */
 public class MongoMappingContext {
 
@@ -85,13 +86,19 @@ public class MongoMappingContext {
     private final MarsCodecProvider marsCodecProvider;
     //
     private final CodecRegistry codecRegistry;
+    // 命名策略 保留状态  todo  转为实体直接保存 。并预先设置相关策略 。
+    // 相关 name strategy 需要设计 ，并通过反射方式 生成该bean
+    private Class< ? > strategyClass;
 
     public MongoDatabase getDatabase() {
         return database;
     }
 
     private final MongoDatabase database;
+    private final DateStorage dateStorage = DateStorage.UTC;
 
+
+    //所有扫描到的带有@Entity的类的集合
     private Set<? extends Class<?>> initialEntitySet;
 
     public void setInitialEntitySet(Set<? extends Class<?>> initialEntitySet) {
@@ -99,6 +106,11 @@ public class MongoMappingContext {
     }
 
 
+    public Set<? extends Class<?>> getInitialEntitySet(){
+        return initialEntitySet;
+    }
+
+    //是否开启自动创建注解
     private boolean autoIndexCreation = false;
 
     public MongoMappingContext( MongoDatabase database ) {
@@ -111,7 +123,6 @@ public class MongoMappingContext {
                 new DBRefCodecProvider(),
                 new DBObjectCodecProvider(),
                 new DocumentCodecProvider(new DocumentToDBRefTransformer()),
-
                 new IterableCodecProvider(new DocumentToDBRefTransformer()),
                 new com.whaleal.mars.codecs.internal.MapCodecProvider(),
                 new GeoJsonCodecProvider(),
@@ -135,6 +146,8 @@ public class MongoMappingContext {
 
 
         );
+
+//        this.autoIndexCreation = isAutoIndexCreation();
 
     }
 
@@ -432,4 +445,15 @@ public class MongoMappingContext {
     }
 
 
+    public void setNamingStrategy( Class<?> strategyClass ) {
+        this.strategyClass = strategyClass ;
+    }
+
+    public DateStorage getDateStorage() {
+        return dateStorage;
+    }
+
+    public MongoMappingContext getMapper() {
+        return this;
+    }
 }

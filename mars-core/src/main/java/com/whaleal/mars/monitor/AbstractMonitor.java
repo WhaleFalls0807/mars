@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 /**
  * Base class to encapsulate common configuration settings when connecting to a database
+ * 抽象基类，连接数据库执行db.runCommand({"serverStatus" : 1,"rangeDeleter" : 1,"repl" : 1})，子类继承这个类，解析命令返回结果，获取对应的监控指标
  */
 public abstract class AbstractMonitor {
 
@@ -52,21 +53,29 @@ public abstract class AbstractMonitor {
         this.mongoClient = mongoClient;
     }
 
+    /**
+     * 执行db.serverStatus()命令
+     * @return
+     */
     public Document getServerStatus() {
         return getDb("admin").runCommand(new Document("serverStatus", 1).append("rangeDeleter", 1).append("repl", 1));
+    }
+
+    /**
+     * 执行db.runCommand( { "connPoolStats" : 1 } )命令
+     * @return
+     */
+    protected Document getConnPoolStats(){
+        return getDb("admin").runCommand(new Document("connPoolStats",1));
     }
 
     public MongoDatabase getDb(String databaseName) {
         return mongoClient.getDatabase(databaseName);
     }
 
-    protected MongoClient getMongoClient() {
-        return mongoClient;
-    }
-
     protected List<ServerAddress> hosts() {
-
         return mongoClient.getClusterDescription().getServerDescriptions().stream().map(ServerDescription::getAddress)
                 .collect(Collectors.toList());
     }
+
 }

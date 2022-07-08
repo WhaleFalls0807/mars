@@ -34,6 +34,7 @@ import org.bson.Document;
 
 /**
  * JMX Metrics for Connections
+ * 解析db.serverStatus()的connection参数
  */
 public class ConnectionMetrics extends AbstractMonitor {
 
@@ -44,18 +45,17 @@ public class ConnectionMetrics extends AbstractMonitor {
         super(mongoClient);
     }
 
-    public int getCurrent() {
-        return getConnectionData("current", Integer.class);
+    public Integer getCurrent() {
+        return getConnectionData("current");
     }
 
-    public int getAvailable() {
-        return getConnectionData("available", Integer.class);
+    public Integer getAvailable() {
+        return getConnectionData("available");
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T getConnectionData(String key, Class<T> targetClass) {
+    private <T> T getConnectionData(String key) {
         Document mem = (Document) getServerStatus().get("connections");
-        // Class c = mem.get(key).getClass();
         return (T) mem.get(key);
     }
 
