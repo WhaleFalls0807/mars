@@ -29,7 +29,6 @@
  */
 package com.whaleal.mars.core.messaging;
 
-import com.mongodb.MongoNamespace;
 import com.mongodb.client.ChangeStreamIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -41,12 +40,14 @@ import com.whaleal.icefrog.core.util.StrUtil;
 import com.whaleal.mars.core.Mars;
 
 import com.whaleal.mars.core.aggregation.AggregationPipeline;
+import com.whaleal.mars.core.internal.MongoNamespace;
 import com.whaleal.mars.session.option.AggregationOptions;
 import com.whaleal.mars.core.internal.ErrorHandler;
 import org.bson.BsonDocument;
 import org.bson.BsonTimestamp;
 import org.bson.BsonValue;
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
 
 import java.time.Instant;
 import java.util.*;
@@ -57,10 +58,12 @@ class ChangeStreamTask extends CursorReadingTask<ChangeStreamDocument<Document>,
     private final Set<String> denylist = new HashSet<>(
             Arrays.asList("operationType", "fullDocument", "documentKey", "updateDescription", "ns"));
 
+    private final CodecRegistry converter ;
     @SuppressWarnings({"unchecked", "rawtypes"})
     ChangeStreamTask(Mars mars, ChangeStreamRequest<?> request, Class<?> targetType,
                      ErrorHandler errorHandler) {
         super(mars, (ChangeStreamRequest) request, (Class) targetType, errorHandler);
+        this.converter = mars.getMapper().getCodecRegistry();
     }
 
 
@@ -175,11 +178,10 @@ class ChangeStreamTask extends CursorReadingTask<ChangeStreamDocument<Document>,
     protected Message<ChangeStreamDocument<Document>, Object> createMessage(ChangeStreamDocument<Document> source,
                                                                             Class<Object> targetType, SubscriptionRequest.RequestOptions options) {
 
-        MongoNamespace namespace = source.getNamespace() != null ? source.getNamespace()
+        MongoNamespace namespace = source.getNamespace() != null ? MongoNamespace.convertFrom(source.getNamespace())
                 : createNamespaceFromOptions(options);
 
-        return new ChangeStreamEventMessage<>(new ChangeStreamEvent<>(source, targetType), Message.MessageProperties
-                .builder().databaseName(namespace.getDatabaseName()).collectionName(namespace.getCollectionName()).build());
+        return new ChangeStreamEventMessage<>(new ChangeStreamEvent<>(source, targetType,converter), namespace);
     }
 
     MongoNamespace createNamespaceFromOptions(SubscriptionRequest.RequestOptions options) {
@@ -196,11 +198,11 @@ class ChangeStreamTask extends CursorReadingTask<ChangeStreamDocument<Document>,
     static class ChangeStreamEventMessage<T> implements Message<ChangeStreamDocument<Document>, T> {
 
         private final ChangeStreamEvent<T> delegate;
-        private final MessageProperties messageProperties;
+        private final MongoNamespace ns;
 
-        ChangeStreamEventMessage(ChangeStreamEvent<T> delegate, MessageProperties messageProperties) {
+        ChangeStreamEventMessage(ChangeStreamEvent<T> delegate, MongoNamespace ns) {
             this.delegate = delegate;
-            this.messageProperties = messageProperties;
+            this.ns = ns;
         }
 
 
@@ -217,8 +219,8 @@ class ChangeStreamTask extends CursorReadingTask<ChangeStreamDocument<Document>,
 
 
         @Override
-        public MessageProperties getProperties() {
-            return this.messageProperties;
+        public MongoNamespace getMongoNamespace() {
+            return this.ns;
         }
 
         /**

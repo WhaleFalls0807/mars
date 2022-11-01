@@ -30,10 +30,20 @@
 package com.whaleal.mars.core.query;
 
 
+import com.mongodb.ReadConcern;
+import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 import com.whaleal.icefrog.core.lang.Precondition;
+import com.whaleal.icefrog.core.util.ObjectUtil;
+import com.whaleal.mars.codecs.writer.DocumentWriter;
+import com.whaleal.mars.core.aggregation.codecs.ExpressionHelper;
+import com.whaleal.mars.core.domain.IProjection;
+import com.whaleal.mars.core.domain.ISort;
+import com.whaleal.mars.core.domain.Pageable;
+import com.whaleal.mars.core.domain.SortType;
 import com.whaleal.mars.core.internal.InvalidMongoDbApiUsageException;
-import com.whaleal.mars.util.BsonUtil;
-import com.whaleal.mars.util.DocumentUtil;
+
+
 import org.bson.Document;
 
 import java.time.Duration;
@@ -52,16 +62,55 @@ public class Query {
     // 主要查询 criteria 可以拼接多个,这里是有序存储 。
     private final Map<String, CriteriaDefinition> criteria = new LinkedHashMap<>();
     // projection
-    private Projection projectionSpec = null;
+    private IProjection projectionSpec = null;
     // sorting
-    private Sort sort = Sort.unsorted();
+    //private List<Sort> sorts = new ArrayList<>();
+    private ISort sorts = Sort.unsorted();
     private long skip;
     private int limit;
+
+    //  hint 的 保存   主要有两种形式 ①indexName  ②索引结构的 document  形式
     private String hint;
+
+    private WriteConcern writeConcern ;
+    private ReadConcern readConcern ;
+
+    private ReadPreference readPreference  ;
 
     private Meta meta = new Meta();
     // collation
-    private Optional<Collation> collation = Optional.empty();
+    private Optional<com.mongodb.client.model.Collation> collation = Optional.empty();
+
+    public ReadConcern getReadConcern() {
+        return readConcern;
+    }
+
+    public Query setReadConcern( ReadConcern readConcern ) {
+        this.readConcern = readConcern;
+        return this ;
+    }
+
+    public ReadPreference getReadPreference() {
+        return readPreference;
+    }
+
+    public Query setReadPreference( ReadPreference readPreference ) {
+        this.readPreference = readPreference;
+        return this ;
+    }
+
+
+    public Query setWriteConcern( WriteConcern writeConcern ) {
+
+        this.writeConcern = writeConcern ;
+        return this ;
+
+    }
+
+    public WriteConcern getWriteConcern() {
+
+        return this.writeConcern ;
+    }
 
     public Query() {
     }
@@ -155,13 +204,13 @@ public class Query {
         } else {
             throw new InvalidMongoDbApiUsageException(
                     String.format("Due to limitations of the com.mongodb.BasicDocument, you can't add a second '%s' criteria. "
-                            + "Query already contains '%s'", key, DocumentUtil.serializeToJsonSafely(existing.getCriteriaObject())));
+                            + "Query already contains '%s'", key, existing.getCriteriaObject() ==null ? "null": existing.getCriteriaObject().toJson()));
         }
 
         return this;
     }
 
-    public Projection fields() {
+    public IProjection fields() {
 
         if (this.projectionSpec == null) {
             this.projectionSpec = new Projection();
@@ -170,7 +219,7 @@ public class Query {
         return this.projectionSpec;
     }
 
-    public Query withProjection(Projection projection) {
+    public Query withProjection(IProjection projection) {
 
         Precondition.notNull(projection, "projection must not be empty or null!");
         this.projectionSpec = projection;
@@ -199,13 +248,54 @@ public class Query {
         return this;
     }
 
+
+    /**
+     * Sets the given pagination information on the {@link Query} instance. Will transparently set {@code skip} and
+     * {@code limit} as well as applying the {@link Sort} instance defined with the {@link Pageable}.
+     *
+     * @param pageable must not be {@literal null}.
+     * @return this.
+     */
+    public Query with( Pageable pageable) {
+
+        if (pageable.isUnpaged()) {
+            return this;
+        }
+
+        this.limit = pageable.getPageSize();
+        this.skip = pageable.getOffset();
+
+
+        return with(pageable.getSort());
+
+    }
+
+
+    /**
+     * Adds a {@link Sort} to the {@link Query} instance.
+     *
+     * @param sort must not be {@literal null}.
+     * @return this.
+     */
+    public Query with(ISort sort) {
+
+        Precondition.notNull(sort, "Sort must not be null!");
+
+        if (sort.isUnsorted()) {
+            return this;
+        }
+
+        this.sorts = this.sorts.and(sort);
+
+        return this;
+    }
+
     /**
      * Configures the query to use the given hint when being executed. The {@code hint} can either be an index name or a
      * json {@link Document} representation.
      *
      * @param hint must not be {@literal null} or empty.
      * @return this.
-     * @see Document#parse(String)
      */
     public Query withHint(String hint) {
 
@@ -234,26 +324,22 @@ public class Query {
      * @param sort must not be {@literal null}.
      * @return this.
      */
-    public Query with(Sort sort) {
+    public Query with(ISort... sort) {
 
         Precondition.notNull(sort, "Sort must not be null!");
 
-        if (sort.isUnsorted()) {
+        if (sort.length == 0) {
             return this;
         }
 
-        sort.stream().filter(Sort.Order::isIgnoreCase).findFirst().ifPresent(it -> {
-
-            throw new IllegalArgumentException(String.format("Given sort contained an Order for %s with ignore case! "
-                    + "MongoDB does not support sorting ignoring case currently!", it.getProperty()));
-        });
-
-        this.sort = this.sort.and(sort);
-
+        for(ISort isort :sort) {
+            if (isort.isUnsorted()) {
+               continue;
+            }
+            sorts.and(isort);
+        }
         return this;
     }
-
-
 
     /**
      * @return the query {@link Document}.
@@ -281,26 +367,26 @@ public class Query {
      */
     public Document getSortObject() {
 
-        if (this.sort.isUnsorted()) {
-            return new Document();
+        DocumentWriter writer = new DocumentWriter() ;
+        if(isSorted()){
+            ExpressionHelper.document(writer, () -> {
+                for (SortType sortType : sorts.getSorts()) {
+                    writer.writeName(sortType.getField());
+                    sortType.getDirection().encode(writer);
+                }
+            });
+            return writer.getDocument();
         }
-
-        Document document = new Document();
-
-        this.sort.stream()//
-                .forEach(order -> document.put(order.getProperty(), order.isAscending() ? 1 : -1));
-
-        return document;
+        return null;
     }
 
     /**
      * Returns {@literal true} if the {@link Query} has a sort parameter.
      *
      * @return {@literal true} if sorted.
-     * @see Sort#isSorted()
      */
     public boolean isSorted() {
-        return sort.isSorted();
+        return ObjectUtil.isNotEmpty(sorts);
     }
 
     /**
@@ -332,7 +418,6 @@ public class Query {
     /**
      * @param maxTimeMsec
      * @return this.
-     * @see Meta#setMaxTimeMsec(long)
      */
     public Query maxTimeMsec(long maxTimeMsec) {
 
@@ -344,7 +429,6 @@ public class Query {
      * @param timeout
      * @param timeUnit must not be {@literal null}.
      * @return this.
-     * @see Meta#setMaxTime(long, TimeUnit)
      * @deprecated . Use {@link #maxTime(Duration)} instead.
      */
     @Deprecated
@@ -357,7 +441,6 @@ public class Query {
     /**
      * @param timeout must not be {@literal null}.
      * @return this.
-     * @see Meta#setMaxTime(Duration)
      */
     public Query maxTime(Duration timeout) {
 
@@ -370,7 +453,6 @@ public class Query {
      *
      * @param comment must not be {@literal null}.
      * @return this.
-     * @see Meta#setComment(String)
      */
     public Query comment(String comment) {
 
@@ -385,7 +467,6 @@ public class Query {
      *
      * @param batchSize The number of documents to return per batch.
      * @return this.
-     * @see Meta#setCursorBatchSize(int)
      */
     public Query cursorBatchSize(int batchSize) {
 
@@ -395,7 +476,6 @@ public class Query {
 
     /**
      * @return this.
-     * @see Meta.CursorOption#NO_TIMEOUT
      */
     public Query noCursorTimeout() {
 
@@ -405,7 +485,6 @@ public class Query {
 
     /**
      * @return this.
-     * @see Meta.CursorOption#EXHAUST
      */
     public Query exhaust() {
 
@@ -418,8 +497,6 @@ public class Query {
      * Allows querying of a replica.
      *
      * @return this.
-     * @see Meta.CursorOption#SECONDARY_READS
-     * .2
      */
     public Query allowSecondaryReads() {
 
@@ -429,7 +506,6 @@ public class Query {
 
     /**
      * @return this.
-     * @see Meta.CursorOption#PARTIAL
      */
     public Query partialResults() {
 
@@ -453,13 +529,27 @@ public class Query {
         this.meta = meta;
     }
 
+
     /**
      * Set the {@link Collation} applying language-specific rules for string comparison.
      *
      * @param collation can be {@literal null}.
      * @return this.
      */
-    public Query collation( Collation collation ) {
+    public Query collation(Collation collation ) {
+
+        this.collation = Optional.ofNullable(collation.toMongoCollation());
+        return this;
+    }
+
+
+    /**
+     * Set the {@link Collation} applying language-specific rules for string comparison.
+     *
+     * @param collation can be {@literal null}.
+     * @return this.
+     */
+    public Query collation(com.mongodb.client.model.Collation collation ) {
 
         this.collation = Optional.ofNullable(collation);
         return this;
@@ -470,7 +560,7 @@ public class Query {
      *
      * @return never {@literal null}.
      */
-    public Optional<Collation> getCollation() {
+    public Optional<com.mongodb.client.model.Collation> getCollation() {
         return collation;
     }
 
@@ -484,8 +574,8 @@ public class Query {
      */
     @Override
     public String toString() {
-        return String.format("Query: %s, Fields: %s, Sort: %s", DocumentUtil.serializeToJsonSafely(getQueryObject()),
-                DocumentUtil.serializeToJsonSafely(getFieldsObject()), DocumentUtil.serializeToJsonSafely(getSortObject()));
+        return String.format("Query: %s, Fields: %s, Sort: %s", getQueryObject() ==null ? "null": getQueryObject().toJson(),
+                getFieldsObject()== null ? "null":getFieldsObject().toJson(), getSortObject()==null ? "null":getSortObject().toJson() );
     }
 
     /*
@@ -516,7 +606,7 @@ public class Query {
 
         boolean criteriaEqual = this.criteria.equals(that.criteria);
         boolean fieldsEqual = nullSafeEquals(this.projectionSpec, that.projectionSpec);
-        boolean sortEqual = this.sort.equals(that.sort);
+        boolean sortEqual = this.sorts.equals(that.sorts);
         boolean hintEqual = nullSafeEquals(this.hint, that.hint);
         boolean skipEqual = this.skip == that.skip;
         boolean limitEqual = this.limit == that.limit;
@@ -538,7 +628,7 @@ public class Query {
 
         result += 31 * criteria.hashCode();
         result += 31 * nullSafeHashCode(projectionSpec);
-        result += 31 * nullSafeHashCode(sort);
+        result += 31 * nullSafeHashCode(sorts);
         result += 31 * nullSafeHashCode(hint);
         result += 31 * skip;
         result += 31 * limit;

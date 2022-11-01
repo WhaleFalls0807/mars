@@ -33,6 +33,7 @@ import com.mongodb.client.MongoClient;
 import com.whaleal.icefrog.core.util.StrUtil;
 
 import java.net.UnknownHostException;
+import java.util.Date;
 
 /**
  * Expose basic server information via JMX
@@ -59,19 +60,19 @@ public class ServerInfo extends AbstractMonitor {
         return StrUtil.collectionToDelimitedString(hosts(), ",");
     }
 
-    public double getUptimeEstimate() {
-        return (Double) getServerStatus().get("uptimeEstimate");
+    public Long getUptimeEstimate() {
+        return serverStatus.get("uptimeEstimate",Long.class);
     }
 
     public String getVersion() {
-        return (String) getServerStatus().get("version");
+        return (String) serverStatus.get("version");
     }
 
-    public String getLocalTime() {
-        return (String) getServerStatus().get("localTime");
+    public Date getLocalTime() {
+        return serverStatus.get("localTime",Date.class);
     }
 
     public double getUptime() {
-        return (Double) getServerStatus().get("uptime");
+        return (Double) serverStatus.get("uptime");
     }
 }

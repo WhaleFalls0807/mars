@@ -42,15 +42,15 @@ public class MemoryMetrics extends AbstractMonitor {
         super(mongoClient);
     }
 
-    public int getBits() {
+    public Integer getBits() {
         return getMemData("bits", Integer.class);
     }
 
-    public int getResidentSpace() {
+    public Integer getResidentSpace() {
         return getMemData("resident", Integer.class);
     }
 
-    public int getVirtualAddressSpace() {
+    public Integer getVirtualAddressSpace() {
         return getMemData("virtual", Integer.class);
     }
 
@@ -58,15 +58,11 @@ public class MemoryMetrics extends AbstractMonitor {
         return getMemData("supported", Boolean.class);
     }
 
-    public int getMemoryMappedSpace() {
-        return getMemData("mapped", Integer.class);
-    }
-
     @SuppressWarnings("unchecked")
     private <T> T getMemData(String key, Class<T> targetClass) {
-        Document mem = (Document) getServerStatus().get("mem");
+        Document mem = (Document) serverStatus.get("mem");
         // Class c = mem.get(key).getClass();
-        return (T) mem.get(key);
+        return (T) mem.get(key,targetClass);
     }
 
 }

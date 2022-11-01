@@ -32,6 +32,15 @@ package com.whaleal.mars.core.index;
 import com.whaleal.mars.core.index.annotation.Field;
 
 /**
+ * 解析 索引相关的 Field
+ * 其本身也是 注解的一个子类
+ * 本质还是值的持有
+ *
+ * @see com.whaleal.mars.core.index.annotation.Field
+ * @see com.whaleal.mars.core.index.AnnotationBuilder
+ *
+ *
+ *
  * @author wh
  */
 class FieldBuilder extends AnnotationBuilder<Field> implements Field {

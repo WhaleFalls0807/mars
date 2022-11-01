@@ -49,6 +49,7 @@ public class EntityModelBuilder<T> {
     //  实体属性
     private final List<PropertyModelBuilder<?>> propertyModelBuilders = new ArrayList<PropertyModelBuilder<?>>();
     //  id 生成器 如自定义的规则等
+    // 可以自定义
     private IdGenerator<?> idGenerator;
     private InstanceCreatorFactory<T> instanceCreatorFactory;
     //  type
@@ -71,7 +72,7 @@ public class EntityModelBuilder<T> {
 
     public EntityModelBuilder(final Class<T> type) {
         MarsBuilderHelper.configureClassModelBuilder(this, notNull("type", type));
-        initColelctionName();
+        initCollectionName();
     }
 
 
@@ -226,12 +227,16 @@ public class EntityModelBuilder<T> {
     }
 
     EntityModelBuilder<T> addProperty(final PropertyModelBuilder<?> propertyModelBuilder) {
-        propertyModelBuilders.add(notNull("propertyModelBuilder", propertyModelBuilder));
+
+        if(propertyModelBuilder.isReadable() || propertyModelBuilder.isWritable()){
+            propertyModelBuilders.add(notNull("propertyModelBuilder", propertyModelBuilder));
+        }
+
         return this;
     }
 
 
-    private void initColelctionName() {
+    private void initCollectionName() {
 
         Entity anno = null;
 

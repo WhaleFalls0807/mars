@@ -7,7 +7,7 @@
     <groupId>com.whaleal.mars</groupId>
     <artifactId>mars</artifactId>
     <packaging>pom</packaging>
-    <version>0.7.1</version>
+    <version>0.9.6</version>
     <name>Mars</name>
     <description>MongoDB driver framework</description>
     <!--我们项目的git地址-->
@@ -20,13 +20,14 @@
     </modules>
 
     <properties>
-        <mongo.driver.version>4.5.0</mongo.driver.version>
+        <mongodb.version>4.7.1</mongodb.version>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <!-- spring boot 版本 当前以次新版本为主 , spring boot 3 也将要求最低 java 版本为 17-->
         <!-- 需要考虑到 spring 6 以后的兼容性版本,最低java版本要求改为17-->
-        <spring.version>2.5.10</spring.version>
-        <icefrog.version>1.1.7</icefrog.version>
+        <spring.version>5.3.23</spring.version>
+        <spring-boot.version>2.7.4</spring-boot.version>
+        <icefrog.version>1.1.8</icefrog.version>
     </properties>
 
     <!--发布的标准，这个是按照mongodb的标准来做的-->
@@ -160,6 +161,15 @@
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <configuration>
+                    <skip>false</skip>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 

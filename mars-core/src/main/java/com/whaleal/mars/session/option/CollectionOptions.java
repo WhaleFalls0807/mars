@@ -29,19 +29,18 @@
  */
 package com.whaleal.mars.session.option;
 
-import com.mongodb.client.model.TimeSeriesGranularity;
+import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.ValidationAction;
 import com.mongodb.client.model.ValidationLevel;
 import com.whaleal.icefrog.core.lang.Precondition;
 import com.whaleal.icefrog.core.util.OptionalUtil;
-import com.whaleal.icefrog.core.util.StrUtil;
-import com.whaleal.mars.core.query.Collation;
 import com.whaleal.mars.core.validation.Validator;
 
 
 import javax.annotation.Nullable;
 import java.util.Optional;
 
+@Deprecated
 public class CollectionOptions {
 
 
@@ -433,91 +432,6 @@ public class CollectionOptions {
          */
         boolean isEmpty() {
             return !OptionalUtil.isAnyPresent(getValidator(), getValidationAction(), getValidationLevel());
-        }
-    }
-
-    /**
-     * Options applicable to Time Series collections.
-     *
-     * 
-     * 
-     * @see <a href=
-     *      "https://docs.mongodb.com/manual/core/timeseries-collections">https://docs.mongodb.com/manual/core/timeseries-collections</a>
-     */
-    public static class TimeSeriesOptions {
-
-        private final String timeField;
-
-        private @Nullable final String metaField;
-
-        private final TimeSeriesGranularity granularity;
-
-        private TimeSeriesOptions(String timeField, @Nullable String metaField, TimeSeriesGranularity granularity) {
-
-            Precondition.hasText(timeField, "Time field must not be empty or null!");
-
-            this.timeField = timeField;
-            this.metaField = metaField;
-            this.granularity = granularity;
-        }
-
-        /**
-         * Create a new instance of {@link TimeSeriesOptions} using the given field as its {@literal timeField}. The one,
-         * that contains the date in each time series document. <br />
-         *  will be considered during the mapping process.
-         *
-         * @param timeField must not be {@literal null}.
-         * @return new instance of {@link TimeSeriesOptions}.
-         */
-        public static TimeSeriesOptions timeSeries(String timeField) {
-            return new TimeSeriesOptions(timeField, null, null);
-        }
-
-        /**
-         * Set the name of the field which contains metadata in each time series document. Should not be the {@literal id}
-         * nor {@link TimeSeriesOptions#timeSeries(String)} timeField} nor point to an {@literal array} or
-         * {@link java.util.Collection}. <br />
-         *  will be considered during the mapping process.
-         *
-         * @param metaField must not be {@literal null}.
-         * @return new instance of {@link TimeSeriesOptions}.
-         */
-        public TimeSeriesOptions metaField(String metaField) {
-            return new TimeSeriesOptions(timeField, metaField, granularity);
-        }
-
-        /**
-         * Select the {@link TimeSeriesGranularity} parameter to define how data in the time series collection is organized.
-         * Select one that is closest to the time span between incoming measurements.
-         *
-         * @return new instance of {@link TimeSeriesOptions}.
-         * @see TimeSeriesGranularity
-         */
-        public TimeSeriesOptions granularity(TimeSeriesGranularity granularity) {
-            return new TimeSeriesOptions(timeField, metaField, granularity);
-        }
-
-        /**
-         * @return never {@literal null}.
-         */
-        public String getTimeField() {
-            return timeField;
-        }
-
-        /**
-         * @return can be {@literal null}. Might be an {@literal empty} {@link String} as well, so maybe check via
-         *         {@link StrUtil#hasText(String)}.
-         */
-        @Nullable
-        public String getMetaField() {
-            return metaField;
-        }
-
-        /**
-         * @return never {@literal null}.
-         */
-        public TimeSeriesGranularity getGranularity() {
-            return granularity;
         }
     }
 

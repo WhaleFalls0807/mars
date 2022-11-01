@@ -34,6 +34,10 @@ import org.bson.Document;
 
 /**
  * JMX Metrics for B-tree index counters
+ *
+ * Starting in MongoDB 3.0, serverStatus no longer outputs the  indexCounters, and recordStats sections.
+ * 此项指标v4.2及之后版本不再支持
+ * @link{https://www.mongodb.com/docs/v4.2/reference/command/serverStatus/}
  */
 public class BtreeIndexCounters extends AbstractMonitor {
 
@@ -65,7 +69,7 @@ public class BtreeIndexCounters extends AbstractMonitor {
     }
 
     private int getBtree(String key) {
-        Document indexCounters = (Document) getServerStatus().get("indexCounters");
+        Document indexCounters = (Document) serverStatus.get("indexCounters");
         if (indexCounters.get("note") != null) {
             String message = (String) indexCounters.get("note");
             if (message.contains("not supported")) {

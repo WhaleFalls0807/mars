@@ -65,7 +65,7 @@ class TailableCursorTask extends CursorReadingTask<Document, Object> {
 
                 filter.putAll(query.getQueryObject());
 
-                collation = query.getCollation().get().toMongoCollation();
+                collation = query.getCollation().get();
             }
         }
 

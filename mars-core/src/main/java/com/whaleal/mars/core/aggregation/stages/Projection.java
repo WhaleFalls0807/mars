@@ -1,45 +1,31 @@
-/**
- *    Copyright 2020-present  Shanghai Jinmu Information Technology Co., Ltd.
- *
- *    This program is free software: you can redistribute it and/or modify
- *    it under the terms of the Server Side Public License, version 1,
- *    as published by Shanghai Jinmu Information Technology Co., Ltd.(The name of the development team is Whaleal.)
- *
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    Server Side Public License for more details.
- *
- *    You should have received a copy of the Server Side Public License
- *    along with this program. If not, see
- *    <http://www.whaleal.com/licensing/server-side-public-license>.
- *
- *    As a special exception, the copyright holders give permission to link the
- *    code of portions of this program with the OpenSSL library under certain
- *    conditions as described in each individual source file and distribute
- *    linked combinations including the program with the OpenSSL library. You
- *    must comply with the Server Side Public License in all respects for
- *    all of the code used other than as permitted herein. If you modify file(s)
- *    with this exception, you may extend this exception to your version of the
- *    file(s), but you are not obligated to do so. If you do not wish to do so,
- *    delete this exception statement from your version. If you delete this
- *    exception statement from all source files in the program, then also delete
- *    it in the license file.
- */
 package com.whaleal.mars.core.aggregation.stages;
 
-import com.whaleal.mars.codecs.MarsOrmException;
-import com.whaleal.mars.core.aggregation.expressions.Expressions;
+
+
+
+
+
+
 import com.whaleal.mars.core.aggregation.expressions.impls.Expression;
 import com.whaleal.mars.core.aggregation.expressions.impls.Fields;
 import com.whaleal.mars.core.aggregation.expressions.impls.PipelineField;
+import com.whaleal.mars.core.domain.IProjection;
+import com.whaleal.mars.core.internal.ValidationException;
+import org.bson.Document;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.whaleal.mars.core.aggregation.expressions.Expressions.value;
 
-public class Projection extends Stage {
+
+/**
+ * Passes along the documents with the requested fields to the next stage in the pipeline. The specified fields can be existing fields
+ * from the input documents or newly computed fields.
+ *
+ * @aggregation.expression $projection
+ */
+public class Projection extends Stage implements IProjection {
     private Fields<Projection> includes;
     private Fields<Projection> excludes;
     private boolean suppressId;
@@ -48,19 +34,42 @@ public class Projection extends Stage {
         super("$project");
     }
 
-
+    /**
+     * Creates a new stage
+     *
+     * @return the new stage
+     * @deprecated use {@link #project()}
+     */
+    @Deprecated()
     public static Projection of() {
         return new Projection();
     }
 
-
-    public Projection exclude(String name) {
-        return exclude(name, Expressions.value(false));
+    /**
+     * Creates a new stage
+     *
+     * @return the new stage
+     */
+    public static Projection project() {
+        return new Projection();
     }
 
+    /**
+     * Excludes a field.
+     *
+     * @param name the field name
+     * @return this
+     */
+    @Override
+    public Projection exclude(String name) {
+        return exclude(name, value(false));
+    }
 
+    /**
+     * @return the fields
+     */
     public List<PipelineField> getFields() {
-        List<PipelineField> fields = new ArrayList<>();
+        List< PipelineField > fields = new ArrayList<>();
 
         if (includes != null) {
             fields.addAll(includes.getFields());
@@ -69,12 +78,19 @@ public class Projection extends Stage {
             fields.addAll(excludes.getFields());
         }
         if (suppressId) {
-            fields.add(new PipelineField("_id", Expressions.value(false)));
+            fields.add(new PipelineField("_id", value(false)));
         }
         return fields;
     }
 
-
+    /**
+     * Includes a field.
+     *
+     * @param name  the field name
+     * @param value the value expression
+     * @return this
+     */
+    @Override
     public Projection include(String name, Expression value) {
         if (includes == null) {
             includes = Fields.on(this);
@@ -84,15 +100,31 @@ public class Projection extends Stage {
         return this;
     }
 
-
+    /**
+     * Includes a field.
+     *
+     * @param name the field name
+     * @return this
+     */
+    @Override
     public Projection include(String name) {
-        return include(name, Expressions.value(true));
+        return include(name, value(true));
     }
 
-
+    /**
+     * Suppresses the _id field in the resulting document.
+     *
+     * @return this
+     */
+    @Override
     public Projection suppressId() {
         suppressId = true;
         return this;
+    }
+
+    @Override
+    public Document getFieldsObject() {
+        return null;
     }
 
     private Projection exclude(String name, Expression value) {
@@ -107,7 +139,7 @@ public class Projection extends Stage {
     private void validateProjections() {
         if (includes != null && excludes != null) {
             if (excludes.size() > 1 || !"_id".equals(excludes.getFields().get(0).getName())) {
-                throw new MarsOrmException();
+                throw new ValidationException("mixedProjection");
             }
         }
     }

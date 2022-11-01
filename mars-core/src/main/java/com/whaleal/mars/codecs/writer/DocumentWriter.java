@@ -29,6 +29,7 @@
  */
 package com.whaleal.mars.codecs.writer;
 
+import com.whaleal.mars.codecs.MongoMappingContext;
 import org.bson.*;
 import org.bson.codecs.Codec;
 import org.bson.codecs.EncoderContext;
@@ -38,29 +39,55 @@ import org.bson.types.ObjectId;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+
 
 
 @SuppressWarnings("unchecked")
 public class DocumentWriter implements BsonWriter {
     private final RootState root;
     private WriteState state;
-    private int arraysLevel;
-    private int docsLevel;
 
+    private MongoMappingContext mapper;
 
+    /**
+     * 生成新的DocumentWrite对象
+     */
     public DocumentWriter() {
         root = new RootState(this);
         state = root;
     }
 
-
+    /**
+     * 生成包含seeded Document的DocumentWrite对象
+     *
+     * @param seed   the seed Document
+     */
     public DocumentWriter(Document seed) {
         root = new RootState(this, seed);
         state = root;
     }
 
 
+    public DocumentWriter(MongoMappingContext mapper) {
+        this.mapper = mapper;
+        root = new RootState(this);
+        state = root;
+    }
+
+    public DocumentWriter(MongoMappingContext mapper,Document seed) {
+        this.mapper = mapper;
+        root = new RootState(this,seed);
+        state = root;
+    }
+
+    /**
+     * Encodes a value in to this Writer
+     *
+     * @param codecRegistry  the registry to use
+     * @param value          the value to encode
+     * @param encoderContext the context
+     * @return this
+     */
     public DocumentWriter encode(CodecRegistry codecRegistry, Object value, EncoderContext encoderContext) {
         ((Codec) codecRegistry.get(value.getClass()))
                 .encode(this, value, encoderContext);
@@ -72,29 +99,11 @@ public class DocumentWriter implements BsonWriter {
     public void flush() {
     }
 
-
-    public int getArraysLevel() {
-        return arraysLevel;
-    }
-
-
-    public int getDocsLevel() {
-        return docsLevel;
-    }
-
-
+    /**
+     * @return the root, or output, of this writer.  usually a Document.
+     */
     public Document getDocument() {
-        if (arraysLevel != 0 || docsLevel != 0) {
-            throw new IllegalStateException("unbalancedOpens(arraysLevel, docsLevel, state)");
-        }
         return root.getDocument();
-    }
-
-    public void previous() {
-        state(state.previous());
-        if (state() instanceof NameState) {
-            previous();
-        }
     }
 
     public WriteState state() {
@@ -121,14 +130,16 @@ public class DocumentWriter implements BsonWriter {
         state.name(name).value(value);
     }
 
+
     @Override
     public void writeDateTime(long value) {
-        state.value(LocalDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC));
+        state.value(LocalDateTime.ofInstant(Instant.ofEpochMilli(value), mapper.getDateStorage().getZone()));
     }
 
     @Override
     public void writeDateTime(String name, long value) {
-        state.name(name).value(LocalDateTime.ofInstant(Instant.ofEpochMilli(value), ZoneOffset.UTC));
+        state.name(name);
+        writeDateTime(value);
     }
 
     @Override
@@ -153,13 +164,11 @@ public class DocumentWriter implements BsonWriter {
 
     @Override
     public void writeEndArray() {
-        arraysLevel--;
         state.end();
     }
 
     @Override
     public void writeEndDocument() {
-        docsLevel--;
         state.end();
     }
 
@@ -279,13 +288,11 @@ public class DocumentWriter implements BsonWriter {
 
     @Override
     public void writeStartArray() {
-        arraysLevel++;
         state.array();
     }
 
     @Override
     public void writeStartDocument() {
-        docsLevel++;
         state.document();
     }
 
@@ -298,7 +305,6 @@ public class DocumentWriter implements BsonWriter {
     @Override
     public void writeStartDocument(String name) {
         state.name(name).document();
-        docsLevel++;
     }
 
     @Override
@@ -348,10 +354,8 @@ public class DocumentWriter implements BsonWriter {
         return root.toString();
     }
 
-    WriteState state(WriteState state) {
-        final WriteState previous = this.state;
+    void state(WriteState state) {
         this.state = state;
-        return previous;
     }
 
 }

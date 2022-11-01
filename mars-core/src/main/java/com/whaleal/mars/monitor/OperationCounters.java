@@ -35,6 +35,7 @@ import org.bson.Document;
 
 /**
  * JMX Metrics for Operation counters
+ * 解析serverStatus的结果中的opCounters参数
  */
 public class OperationCounters extends AbstractMonitor {
 
@@ -43,32 +44,32 @@ public class OperationCounters extends AbstractMonitor {
         super(mongoClient);
     }
 
-    public int getInsertCount() {
+    public Integer getInsertCount() {
         return getOpCounter("insert");
     }
 
-    public int getQueryCount() {
+    public Integer getQueryCount() {
         return getOpCounter("query");
     }
 
-    public int getUpdateCount() {
+    public Integer getUpdateCount() {
         return getOpCounter("update");
     }
 
-    public int getDeleteCount() {
+    public Integer getDeleteCount() {
         return getOpCounter("delete");
     }
 
-    public int getGetMoreCount() {
+    public Integer getGetMoreCount() {
         return getOpCounter("getmore");
     }
 
-    public int getCommandCount() {
+    public Integer getCommandCount() {
         return getOpCounter("command");
     }
 
-    private int getOpCounter(String key) {
-        Document opCounters = (Document) getServerStatus().get("opcounters");
+    private Integer getOpCounter(String key) {
+        Document opCounters = (Document) serverStatus.get("opcounters");
         return NumberUtil.convertNumberToTargetClass((Number) opCounters.get(key), Integer.class);
     }
 }

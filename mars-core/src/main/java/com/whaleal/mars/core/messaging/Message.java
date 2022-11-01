@@ -30,8 +30,7 @@
 package com.whaleal.mars.core.messaging;
 
 
-import com.whaleal.icefrog.core.lang.Precondition;
-import com.whaleal.icefrog.core.util.ObjectUtil;
+import com.whaleal.mars.core.internal.MongoNamespace;
 
 public interface Message<S, T> {
 
@@ -52,133 +51,10 @@ public interface Message<S, T> {
     T getBody();
 
     /**
-     * {@link MessageProperties} containing information about the {@link Message} origin and other metadata.
+     * {@link MongoNamespace} containing information about the {@link Message} origin and other metadata.
      *
      * @return never {@literal null}.
      */
-    MessageProperties getProperties();
+    MongoNamespace getMongoNamespace();
 
-
-    class MessageProperties {
-
-        private static final MessageProperties EMPTY = new MessageProperties();
-
-        private
-        String databaseName;
-        private
-        String collectionName;
-
-        /**
-         * The database name the message originates from.
-         *
-         * @return can be {@literal null}.
-         */
-
-        public String getDatabaseName() {
-            return databaseName;
-        }
-
-        /**
-         * The collection name the message originates from.
-         *
-         * @return can be {@literal null}.
-         */
-
-        public String getCollectionName() {
-            return collectionName;
-        }
-
-        /**
-         * @return empty {@link MessageProperties}.
-         */
-        public static MessageProperties empty() {
-            return EMPTY;
-        }
-
-        /**
-         * Obtain a shiny new {@link MessagePropertiesBuilder} and start defining options in this fancy fluent way. Just
-         * don't forget to call {@link MessagePropertiesBuilder#build() build()} when your're done.
-         *
-         * @return new instance of {@link MessagePropertiesBuilder}.
-         */
-        public static MessagePropertiesBuilder builder() {
-            return new MessagePropertiesBuilder();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o)
-                return true;
-            if (o == null || getClass() != o.getClass())
-                return false;
-
-            MessageProperties that = (MessageProperties) o;
-
-            if (!ObjectUtil.nullSafeEquals(this.databaseName, that.databaseName)) {
-                return false;
-            }
-
-            return ObjectUtil.nullSafeEquals(this.collectionName, that.collectionName);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = ObjectUtil.nullSafeHashCode(databaseName);
-            result = 31 * result + ObjectUtil.nullSafeHashCode(collectionName);
-            return result;
-        }
-
-        public String toString() {
-            return "Message.MessageProperties(databaseName=" + this.getDatabaseName() + ", collectionName="
-                    + this.getCollectionName() + ")";
-        }
-
-        /**
-         * Builder for {@link MessageProperties}.
-         */
-        public static class MessagePropertiesBuilder {
-
-            private
-            String databaseName;
-            private
-            String collectionName;
-
-            /**
-             * @param dbName must not be {@literal null}.
-             * @return this.
-             */
-            public MessagePropertiesBuilder databaseName(String dbName) {
-
-                Precondition.notNull(dbName, "Database name must not be null!");
-
-                this.databaseName = dbName;
-                return this;
-            }
-
-            /**
-             * @param collectionName must not be {@literal null}.
-             * @return this
-             */
-            public MessagePropertiesBuilder collectionName(String collectionName) {
-
-                Precondition.notNull(collectionName, "Collection name must not be null!");
-
-                this.collectionName = collectionName;
-                return this;
-            }
-
-            /**
-             * @return the built {@link MessageProperties}.
-             */
-            public MessageProperties build() {
-
-                MessageProperties properties = new MessageProperties();
-
-                properties.collectionName = collectionName;
-                properties.databaseName = databaseName;
-
-                return properties;
-            }
-        }
-    }
 }

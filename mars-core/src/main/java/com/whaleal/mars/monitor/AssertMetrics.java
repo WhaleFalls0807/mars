@@ -33,8 +33,11 @@ package com.whaleal.mars.monitor;
 import com.mongodb.client.MongoClient;
 import org.bson.Document;
 
-
+/**
+ * 解析db.serverStatus()的assert参数
+ */
 public class AssertMetrics extends AbstractMonitor {
+
 
     /**
      * @param mongoClient must not be {@literal null}.
@@ -43,30 +46,29 @@ public class AssertMetrics extends AbstractMonitor {
         super(mongoClient);
     }
 
-    public int getRegular() {
+    public Integer getRegular() {
         return getBtree("regular");
     }
 
-    public int getWarning() {
+    public Integer getWarning() {
         return getBtree("warning");
     }
 
-    public int getMsg() {
+    public Integer getMsg() {
         return getBtree("msg");
     }
 
-    public int getUser() {
+    public Integer getUser() {
         return getBtree("user");
     }
 
-    public int getRollovers() {
+    public Integer getRollovers() {
         return getBtree("rollovers");
     }
 
-    private int getBtree(String key) {
-        Document Preconditions = (Document) getServerStatus().get("Preconditions");
-        // Class c = btree.get(key).getClass();
-        return (Integer) Preconditions.get(key);
+    private Integer getBtree(String key) {
+        Document Preconditions = (Document) serverStatus.get("asserts");
+        return Preconditions.getInteger(key);
     }
 
 }

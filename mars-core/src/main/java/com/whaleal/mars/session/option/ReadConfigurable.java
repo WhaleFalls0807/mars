@@ -39,7 +39,8 @@ import com.mongodb.client.model.UpdateOptions;
  *
  * @param <T>
  */
-public interface ReadConfigurable<T> extends Option<T> {
+@Deprecated
+public interface ReadConfigurable<T> extends Options<T> {
     ReadConcern getReadConcern();
 
     ReadPreference getReadPreference();

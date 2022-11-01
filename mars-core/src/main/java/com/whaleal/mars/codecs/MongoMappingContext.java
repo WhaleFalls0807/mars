@@ -69,6 +69,7 @@ import static org.bson.codecs.configuration.CodecRegistries.fromProviders;
  * <p>
  * <p>
  * 需要将原来的   的功能转移到这里来
+ * 自动注入 相关属性会注入到这个相关属性中
  */
 public class MongoMappingContext {
 
@@ -85,15 +86,39 @@ public class MongoMappingContext {
     private final MarsCodecProvider marsCodecProvider;
     //
     private final CodecRegistry codecRegistry;
+    // 命名策略 保留状态  todo  转为实体直接保存 。并预先设置相关策略 。
+    // 相关 name strategy 需要设计 ，并通过反射方式 生成该bean
+    private Class< ? > strategyClass;
+
+    public MongoDatabase getDatabase() {
+        return database;
+    }
 
     private final MongoDatabase database;
+    private final DateStorage dateStorage = DateStorage.UTC;
 
+
+    //所有扫描到的带有@Entity的类的集合
+    private Set<? extends Class<?>> initialEntitySet;
+
+    public void setInitialEntitySet(Set<? extends Class<?>> initialEntitySet) {
+        this.initialEntitySet = initialEntitySet;
+    }
+
+
+    public Set<? extends Class<?>> getInitialEntitySet(){
+        return initialEntitySet;
+    }
+
+    //是否开启自动创建注解
+    private boolean autoIndexCreation = false;
 
     public MongoMappingContext( MongoDatabase database ) {
         this.database = database;
 
         CodecRegistry codecRegistry = fromProviders(
                 new com.whaleal.mars.codecs.internal.ValueCodecProvider(),
+
                 new BsonValueCodecProvider(),
                 new DBRefCodecProvider(),
                 new DBObjectCodecProvider(),
@@ -104,18 +129,49 @@ public class MongoMappingContext {
                 new GridFSFileCodecProvider(),
                 new Jsr310CodecProvider(),
                 new JsonObjectCodecProvider(),
-                new BsonCodecProvider());
+                new BsonCodecProvider()
+        );
+
 
         marsCodecProvider = new MarsCodecProvider(this);
-        this.codecRegistry = fromProviders(new MarsTypesCodecProvider(this),
+        this.codecRegistry = fromProviders(
+
+                new MarsTypesCodecProvider(this),
                 new PrimitiveCodecRegistry(codecRegistry),
                 new EnumCodecProvider(),
                 new AggregationCodecProvider(this),
+
                 codecRegistry,
                 marsCodecProvider
 
+
         );
 
+//        this.autoIndexCreation = isAutoIndexCreation();
+
+    }
+
+    /**
+     * Returns whether auto-index creation is enabled or disabled. <br />
+     * <strong>NOTE:</strong>Index creation should happen at a well-defined time that is ideally controlled by the
+     * application itself.
+     *
+     * @return {@literal true} when auto-index creation is enabled;
+     */
+    public boolean isAutoIndexCreation() {
+        return autoIndexCreation;
+    }
+
+    /**
+     * Enables/disables auto-index creation. <br />
+     * <strong>NOTE:</strong>Index creation should happen at a well-defined time that is ideally controlled by the
+     * application itself.
+     *
+     * @param autoCreateIndexes set to {@literal true} to enable auto-index creation.
+     *
+     */
+    public void setAutoIndexCreation(boolean autoCreateIndexes) {
+        this.autoIndexCreation = autoCreateIndexes;
     }
 
 
@@ -389,4 +445,15 @@ public class MongoMappingContext {
     }
 
 
+    public void setNamingStrategy( Class<?> strategyClass ) {
+        this.strategyClass = strategyClass ;
+    }
+
+    public DateStorage getDateStorage() {
+        return dateStorage;
+    }
+
+    public MongoMappingContext getMapper() {
+        return this;
+    }
 }

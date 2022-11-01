@@ -11,7 +11,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
 
-
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class ContextTest {
@@ -22,6 +21,8 @@ public class ContextTest {
     @Resource
     Mars marsResouce;
 
+
+
     @Test
     public void test() {
         Assert.assertNotNull(mars);
@@ -31,6 +32,5 @@ public class ContextTest {
         Assert.assertNotNull(marsResouce.getDatabase());
 
     }
-
 
 }

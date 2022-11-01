@@ -32,6 +32,7 @@ package com.whaleal.mars.core.query;
 
 import com.whaleal.icefrog.core.lang.Precondition;
 import com.whaleal.icefrog.core.util.ObjectUtil;
+import com.whaleal.mars.core.aggregation.expressions.impls.Expression;
 import org.bson.Document;
 
 import java.util.HashMap;
@@ -56,32 +57,27 @@ import java.util.Map.Entry;
  * 官方文档链接
  * https://docs.mongodb.com/manual/reference/operator/projection/
  */
-public class Projection {
+public class Projection extends com.whaleal.mars.core.domain.Projection {
 
-    // 普通操作 用这 例如:{ item: 1, status: 1, "size.uom": 1 }
-    // 这一块功能可以与 聚合框架匹配进行整合
-    private final Map<String, Integer> criteria = new HashMap<>();
+//    private final Map<String, Object> criteria = new HashMap<>();
     //以下示例使用 $slice 投影运算符返回 instock 数组中的最后一个元素：
     // { item: 1, status: 1, instock: { $slice: -1 } }
     private final Map<String, Object> slices = new HashMap<>();
-    //
+
     private final Map<String, Criteria> elemMatchs = new HashMap<>();
     private String positionKey;
     private int positionValue;
 
-    /**
-     * Include a single {@code field} to be returned by the query operation.
-     *
-     * @param field the document field name to be included.
-     * @return {@code this} field projection instance.
-     */
-    public Projection include(String field) {
+//    public Projection(){
+//        super();
+//    }
+//
+//    public Projection(Map<String, Object> criteria){
+//        super(criteria);
+//    }
 
-        Precondition.notNull(field, "Key must not be null!");
-
-        criteria.put(field, 1);
-
-        return this;
+    public static Projection projection(){
+        return new Projection();
     }
 
     /**
@@ -90,6 +86,7 @@ public class Projection {
      * @param fields the document field names to be included.
      * @return {@code this} field projection instance.
      */
+
     public Projection include(String... fields) {
 
         Precondition.notNull(fields, "Keys must not be null!");
@@ -97,21 +94,6 @@ public class Projection {
         for (String key : fields) {
             criteria.put(key, 1);
         }
-
-        return this;
-    }
-
-    /**
-     * Exclude a single {@code field} from being returned by the query operation.
-     *
-     * @param field the document field name to be included.
-     * @return {@code this} field projection instance.
-     */
-    public Projection exclude(String field) {
-
-        Precondition.notNull(field, "Key must not be null!");
-
-        criteria.put(field, 0);
 
         return this;
     }
@@ -132,6 +114,7 @@ public class Projection {
 
         return this;
     }
+
 
     /**
      * Project a {@code $slice} of the array {@code field} using the first {@code size} elements.
@@ -188,6 +171,7 @@ public class Projection {
         return this;
     }
 
+    @Override
     public Document getFieldsObject() {
 
         @SuppressWarnings({"unchecked", "rawtypes"})
@@ -207,7 +191,6 @@ public class Projection {
 
         return document;
     }
-
     @Override
     public boolean equals(Object o) {
 

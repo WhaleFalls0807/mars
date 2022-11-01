@@ -37,7 +37,8 @@ import com.mongodb.client.MongoCollection;
  *
  * @param <T>
  */
-public interface WriteConfigurable<T> extends Option<T> {
+@Deprecated
+public interface WriteConfigurable<T> extends Options<T> {
 
     default WriteConcern getWriteConcern() {
         return writeConcern();
