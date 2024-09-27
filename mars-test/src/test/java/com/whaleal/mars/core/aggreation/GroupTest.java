@@ -122,7 +122,17 @@ public class GroupTest {
      *  )
      */
     @Test
-    public void testForGroupByItem(){
+    public void testForGroupByItem(){{
+        pipeline.group(Group.group(id(field("item"))).
+                field("totalSaleAmount",sum(multiply(field("price"),field("quantity")))));
+
+        pipeline.match(Filters.gte("totalSaleAmount",100));
+
+        QueryCursor sales = mars.aggregate(pipeline, "sales");
+        while(sales.hasNext()){
+            System.out.println(sales.next());
+        }
+    }
         pipeline.group(Group.group(id(field("item"))).
                 field("totalSaleAmount",sum(multiply(field("price"),field("quantity")))));
 

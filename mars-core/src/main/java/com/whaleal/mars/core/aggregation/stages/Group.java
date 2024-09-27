@@ -177,7 +177,7 @@ public class Group extends Stage {
          */
         public GroupId field(String name, Expression expression) {
             if (field != null) {
-                throw new AggregationException("mixedModesNotAllowed_id");
+                throw new AggregationException("mixed Modes Not Allowed _id");
             }
             document.field(name, expression);
 

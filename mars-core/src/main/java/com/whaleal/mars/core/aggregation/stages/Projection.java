@@ -139,7 +139,7 @@ public class Projection extends Stage implements IProjection {
     private void validateProjections() {
         if (includes != null && excludes != null) {
             if (excludes.size() > 1 || !"_id".equals(excludes.getFields().get(0).getName())) {
-                throw new ValidationException("mixedProjection");
+                throw new ValidationException("mixed Projection Not Allowed");
             }
         }
     }
